@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ViralReelsApp — TikTok Integration Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #080808;
+      --white: #f8f6f1;
+      --accent: #ff0050;
+      --accent2: #00f2ea;
+      --surface: #111111;
+      --border: #222222;
+      --muted: #555;
+      --success: #00c853;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--black);
+      color: var(--white);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* GRID BG */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,0,80,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,0,80,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 40px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,8,8,0.9);
+      backdrop-filter: blur(12px);
+    }
+    .logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent); }
+    .demo-badge {
+      background: rgba(255,0,80,.12);
+      border: 1px solid rgba(255,0,80,.3);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 100px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* MAIN */
+    main {
+      position: relative; z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 120px 24px 80px;
+    }
+
+    /* STEP INDICATOR */
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 56px;
+    }
+    .step-dot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      position: relative;
+    }
+    .step-dot::after {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      z-index: 0;
+    }
+    .step-dot:last-child::after { display: none; }
+    .dot-circle {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      position: relative; z-index: 1;
+      transition: all .4s ease;
+    }
+    .dot-circle.active {
+      border-color: var(--accent);
+      background: rgba(255,0,80,.15);
+      color: var(--accent);
+      box-shadow: 0 0 20px rgba(255,0,80,.2);
+    }
+    .dot-circle.done {
+      border-color: var(--success);
+      background: rgba(0,200,83,.15);
+      color: var(--success);
+    }
+    .dot-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      transition: color .4s;
+      white-space: nowrap;
+    }
+    .step-dot.active .dot-label { color: var(--white); }
+    .step-dot.done .dot-label { color: var(--success); }
+
+    /* SCREENS */
+    .screen { display: none; animation: fadeUp .4s ease forwards; }
+    .screen.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* CARD */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(255,0,80,.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* TYPOGRAPHY */
+    h1 { font-family: 'Syne', sans-serif; font-size: clamp(28px, 5vw, 48px); font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 12px; }
+    h2 { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+    h3 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+    p { font-size: 15px; color: #999; line-height: 1.7; margin-bottom: 16px; }
+    .accent { color: var(--accent); }
+    .cyan { color: var(--accent2); }
+
+    /* SCREEN 1 — Welcome */
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,242,234,.08);
+      border: 1px solid rgba(0,242,234,.2);
+      color: var(--accent2);
+      font-size: 12px; font-weight: 500;
+      padding: 6px 14px; border-radius: 100px;
+      margin-bottom: 28px;
+    }
+    .hero-tag-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .feature-item {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .feature-icon { font-size: 22px; margin-bottom: 10px; }
+    .feature-item h4 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .feature-item p { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5; }
+
+    /* SCREEN 2 — OAuth */
+    .oauth-window {
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      max-width: 420px;
+      margin: 0 auto;
+      box-shadow: 0 40px 80px rgba(0,0,0,.5);
+    }
+    .oauth-header {
+      background: #000;
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .oauth-logo { color: #fff; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; }
+    .oauth-logo span { color: #ff0050; }
+    .oauth-body { padding: 28px 24px; }
+    .oauth-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, #ff0050, #00f2ea);
+      margin: 0 auto 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .oauth-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: #111; text-align: center; margin-bottom: 6px; }
+    .oauth-sub { font-size: 13px; color: #777; text-align: center; margin-bottom: 24px; }
+    .oauth-permissions { background: #f7f7f7; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+    .perm-title { font-size: 12px; font-weight: 600; color: #333; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+    .perm-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+    .perm-item:last-child { margin-bottom: 0; }
+    .perm-check { width: 18px; height: 18px; border-radius: 50%; background: #e8f5e9; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .perm-check svg { width: 10px; height: 10px; }
+    .perm-text { font-size: 13px; color: #333; line-height: 1.4; }
+    .perm-text strong { display: block; font-weight: 600; }
+    .oauth-btn {
+      width: 100%; padding: 14px;
+      background: #ff0050; color: #fff;
+      border: none; border-radius: 10px;
+      font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: opacity .2s;
+      margin-bottom: 10px;
+    }
+    .oauth-btn:hover { opacity: .88; }
+    .oauth-cancel { width: 100%; text-align: center; font-size: 13px; color: #999; background: none; border: none; cursor: pointer; padding: 6px; }
+    .oauth-footer { font-size: 11px; color: #bbb; text-align: center; padding: 0 24px 20px; line-height: 1.5; }
+
+    /* SCREEN 3 — Dashboard */
+    .db-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .user-chip {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(0,200,83,.1);
+      border: 1px solid rgba(0,200,83,.2);
+      border-radius: 100px; padding: 6px 14px 6px 6px;
+    }
+    .user-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg,#ff0050,#00f2ea); display:flex;align-items:center;justify-content:center;font-size:12px; }
+    .user-name { font-size: 13px; font-weight: 500; color: var(--success); }
+    .connected-badge { font-size: 11px; color: var(--success); background: rgba(0,200,83,.1); border: 1px solid rgba(0,200,83,.2); padding: 3px 10px; border-radius: 100px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .stat-value { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+    .stat-value.red { color: var(--accent); }
+    .stat-value.cyan { color: var(--accent2); }
+    .stat-value.green { color: var(--success); }
+
+    .videos-table { width: 100%; border-collapse: collapse; }
+    .videos-table th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+    .videos-table td { padding: 14px; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 13px; }
+    .videos-table tr:last-child td { border-bottom: none; }
+    .viral-tag { display: inline-block; background: rgba(255,0,80,.12); color: var(--accent); border: 1px solid rgba(255,0,80,.2); font-size: 10px; padding: 2px 8px; border-radius: 100px; font-weight: 600; }
+    .score-bar { display: flex; align-items: center; gap: 8px; }
+    .bar-bg { flex: 1; height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; }
+    .bar-fill { height: 100%; border-radius: 2px; background: var(--accent); }
+
+    /* SCREEN 4 — Generate */
+    .script-box {
+      background: rgba(0,0,0,.4);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #ddd;
+      margin: 20px 0;
+      min-height: 160px;
+      position: relative;
+    }
+    .typing-cursor { display: inline-block; width: 2px; height: 16px; background: var(--accent); animation: blink .7s infinite; vertical-align: middle; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .script-section { margin-bottom: 8px; }
+    .script-label { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-bottom: 2px; }
+
+    /* SCREEN 5 — Publish */
+    .publish-preview {
+      background: #000;
+      border-radius: 20px;
+      overflow: hidden;
+      max-width: 260px;
+      margin: 0 auto 28px;
+      border: 1px solid #222;
+      position: relative;
+    }
+    .phone-screen {
+      background: linear-gradient(135deg, #1a0010 0%, #000 50%, #001a1a 100%);
+      padding: 20px 16px 60px;
+      min-height: 380px;
+      display: flex; flex-direction: column; justify-content: flex-end;
+    }
+    .tiktok-video-placeholder {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px;
+      opacity: .15;
+    }
+    .phone-caption { font-size: 13px; color: rgba(255,255,255,.9); line-height: 1.4; margin-bottom: 8px; position: relative; z-index: 1; }
+    .phone-tags { font-size: 12px; color: var(--accent2); position: relative; z-index: 1; }
+    .phone-actions { position: absolute; right: 12px; bottom: 80px; display: flex; flex-direction: column; gap: 16px; align-items: center; }
+    .phone-action { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .phone-action-icon { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .phone-action-count { font-size: 10px; color: rgba(255,255,255,.7); }
+    .publish-status {
+      text-align: center;
+      padding: 16px;
+      background: rgba(0,200,83,.08);
+      border: 1px solid rgba(0,200,83,.2);
+      border-radius: 12px;
+      color: var(--success);
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    /* BUTTONS */
+    .btn-main {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      border: none; border-radius: 10px;
+      padding: 14px 28px;
+      font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: opacity .2s, transform .1s;
+    }
+    .btn-main:hover { opacity: .88; }
+    .btn-main:active { transform: scale(.98); }
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent;
+      color: var(--white);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 13px 24px;
+      font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background .2s;
+      margin-left: 12px;
+    }
+    .btn-outline:hover { background: rgba(255,255,255,.05); }
+    .btn-row { display: flex; align-items: center; margin-top: 32px; flex-wrap: wrap; gap: 12px; }
+
+    /* SUCCESS */
+    .success-screen { text-align: center; padding: 40px 0; }
+    .success-icon { font-size: 64px; margin-bottom: 20px; }
+    .confetti { animation: pop .6s ease forwards; }
+    @keyframes pop { 0%{transform:scale(0)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
+
+    /* LOADING BAR */
+    .loading-bar {
+      width: 100%; height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+    .loading-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      width: 0%;
+      transition: width .1s linear;
+    }
+
+    @media (max-width: 600px) {
+      nav { padding: 14px 20px; }
+      .feature-grid { grid-template-columns: 1fr 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      main { padding: 100px 16px 60px; }
+      .card { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Viral<span>Reels</span>App</div>
+  <span class="demo-badge">Live Demo</span>
+</nav>
+
+<main>
+  <!-- STEP INDICATOR -->
+  <div class="step-indicator" id="stepIndicator">
+    <div class="step-dot active" id="dot-1">
+      <div class="dot-circle active" id="circle-1">1</div>
+      <span class="dot-label">Welcome</span>
+    </div>
+    <div class="step-dot" id="dot-2">
+      <div class="dot-circle" id="circle-2">2</div>
+      <span class="dot-label">TikTok Login</span>
+    </div>
+    <div class="step-dot" id="dot-3">
+      <div class="dot-circle" id="circle-3">3</div>
+      <span class="dot-label">Dashboard</span>
+    </div>
+    <div class="step-dot" id="dot-4">
+      <div class="dot-circle" id="circle-4">4</div>
+      <span class="dot-label">AI Generate</span>
+    </div>
+    <div class="step-dot" id="dot-5">
+      <div class="dot-circle" id="circle-5">5</div>
+      <span class="dot-label">Publish</span>
+    </div>
+  </div>
+
+  <!-- SCREEN 1: WELCOME -->
+  <div class="screen active" id="screen-1">
+    <div class="card">
+      <div class="hero-tag"><span class="hero-tag-dot"></span> TikTok API Integration Demo</div>
+      <h1>Discover viral reels.<br><span class="accent">Publish automatically.</span></h1>
+      <p>ViralReelsApp connects to your TikTok account via the official API to find your best performing content, generate AI-powered scripts, and publish new reels — all from one dashboard.</p>
+
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="feature-icon">🔐</div>
+          <h4>Login Kit</h4>
+          <p>Secure OAuth2 authentication with your TikTok account</p>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">📊</div>
+          <h4>video.list</h4>
+          <p>Retrieves your videos to analyze engagement & viral score</p>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🚀</div>
+          <h4>video.upload</h4>
+          <p>Publishes AI-generated content directly to your account</p>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-main" onclick="goTo(2)">Start Demo — Connect TikTok →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: OAUTH -->
+  <div class="screen" id="screen-2">
+    <p style="text-align:center;margin-bottom:24px;font-size:14px;color:var(--muted)">Step 1 — User clicks "Login with TikTok" and sees the official OAuth2 authorization screen:</p>
+    <div class="oauth-window">
+      <div class="oauth-header">
+        <div class="oauth-logo">Tik<span>Tok</span></div>
+      </div>
+      <div class="oauth-body">
+        <div class="oauth-avatar">🎵</div>
+        <div class="oauth-title">ViralReelsApp wants to access your TikTok account</div>
+        <div class="oauth-sub">@rachidinfo · rachidinfo.tiktok.com</div>
+        <div class="oauth-permissions">
+          <div class="perm-title">This app will be able to:</div>
+          <div class="perm-item">
+            <div class="perm-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="perm-text"><strong>View your profile info</strong>Username and profile picture (Login Kit)</div>
+          </div>
+          <div class="perm-item">
+            <div class="perm-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="perm-text"><strong>View your videos</strong>Read your published video list and metrics (video.list)</div>
+          </div>
+          <div class="perm-item">
+            <div class="perm-check"><svg viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="perm-text"><strong>Upload videos</strong>Post new content to your account when you approve (video.upload)</div>
+          </div>
+        </div>
+        <button class="oauth-btn" onclick="authorize()">Authorize ViralReelsApp</button>
+        <button class="oauth-cancel" onclick="goTo(1)">Cancel</button>
+      </div>
+      <div class="oauth-footer">By authorizing, you agree to ViralReelsApp's <a href="terms-of-service.html" style="color:#ff0050">Terms</a> and <a href="privacy-policy.html" style="color:#ff0050">Privacy Policy</a>.</div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: DASHBOARD -->
+  <div class="screen" id="screen-3">
+    <div class="card">
+      <div class="db-header">
+        <h2>Your TikTok Dashboard</h2>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="user-chip">
+            <div class="user-avatar">🎵</div>
+            <span class="user-name">@rachidinfo</span>
+          </div>
+          <span class="connected-badge">✓ Connected</span>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Videos</div>
+          <div class="stat-value red">23</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Views</div>
+          <div class="stat-value cyan">4.2M</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Viral Detected</div>
+          <div class="stat-value green">5</div>
+        </div>
+      </div>
+
+      <h3 style="margin-bottom:16px;font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Top Viral Videos — via video.list API</h3>
+      <table class="videos-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Views</th>
+            <th>Likes</th>
+            <th>Viral Score</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="max-width:200px;color:#ddd">Top 5 AI tools that will replace your job in 2025...</td>
+            <td>2.4M</td>
+            <td>182K</td>
+            <td><div class="score-bar"><div class="bar-bg"><div class="bar-fill" style="width:95%"></div></div><span style="font-size:12px;color:var(--accent)">95</span></div></td>
+            <td><span class="viral-tag">VIRAL</span></td>
+          </tr>
+          <tr>
+            <td style="max-width:200px;color:#ddd">ChatGPT vs Claude vs Gemini — honest comparison</td>
+            <td>980K</td>
+            <td>74K</td>
+            <td><div class="score-bar"><div class="bar-bg"><div class="bar-fill" style="width:78%"></div></div><span style="font-size:12px;color:var(--accent)">78</span></div></td>
+            <td><span class="viral-tag">VIRAL</span></td>
+          </tr>
+          <tr>
+            <td style="max-width:200px;color:#ddd">How I built an AI app in 24 hours with no code</td>
+            <td>650K</td>
+            <td>48K</td>
+            <td><div class="score-bar"><div class="bar-bg"><div class="bar-fill" style="width:62%"></div></div><span style="font-size:12px;color:var(--accent)">62</span></div></td>
+            <td><span class="viral-tag">VIRAL</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="btn-row">
+        <button class="btn-main" onclick="goTo(4)">Generate Similar Script with AI →</button>
+        <button class="btn-outline" onclick="goTo(2)">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: AI GENERATE -->
+  <div class="screen" id="screen-4">
+    <div class="card">
+      <h2>AI Script Generation</h2>
+      <p>Based on your top viral video, our AI (Claude API) generates an original script with the same hook structure and format.</p>
+
+      <div style="background:rgba(255,0,80,.06);border:1px solid rgba(255,0,80,.15);border-radius:10px;padding:14px;margin-bottom:20px;font-size:13px;color:#ccc;">
+        <strong style="color:var(--accent)">Source viral:</strong> "Top 5 AI tools that will replace your job in 2025" — 2.4M views, score 95
+      </div>
+
+      <h3>Generated Script</h3>
+      <div class="script-box" id="scriptBox">
+        <div id="scriptContent"></div>
+        <span class="typing-cursor" id="cursor"></span>
+      </div>
+
+      <div class="loading-bar" id="loadingBar" style="display:none">
+        <div class="loading-fill" id="loadingFill"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-main" id="generateBtn" onclick="generateScript()">Generate Script with Claude AI →</button>
+        <button class="btn-outline" onclick="goTo(3)">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 5: PUBLISH -->
+  <div class="screen" id="screen-5">
+    <div class="card">
+      <h2>Publish to TikTok</h2>
+      <p>Your AI-generated reel is ready. Review the preview and publish directly to your TikTok account via the <span class="cyan">video.upload</span> API.</p>
+
+      <div class="publish-preview">
+        <div class="phone-screen">
+          <div class="tiktok-video-placeholder">🎵</div>
+          <div class="phone-caption">POV: 5 AI tools in 2025 that are silently replacing entire job categories — and most people still haven't heard of them... 👀</div>
+          <div class="phone-tags">#AITools #TechTok #FutureOfWork #ViralReelsApp</div>
+        </div>
+        <div class="phone-actions">
+          <div class="phone-action"><div class="phone-action-icon">❤️</div><div class="phone-action-count">0</div></div>
+          <div class="phone-action"><div class="phone-action-icon">💬</div><div class="phone-action-count">0</div></div>
+          <div class="phone-action"><div class="phone-action-icon">↗️</div><div class="phone-action-count">0</div></div>
+        </div>
+      </div>
+
+      <div id="publishStatus" style="display:none" class="publish-status">
+        ✓ Published successfully to @rachidinfo via video.upload API
+      </div>
+
+      <div class="btn-row" id="publishBtns">
+        <button class="btn-main" onclick="publish()">Publish to TikTok Now →</button>
+        <button class="btn-outline" onclick="goTo(4)">← Back</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+let currentStep = 1;
+
+function goTo(step) {
+  document.getElementById('screen-' + currentStep).classList.remove('active');
+  document.getElementById('dot-' + currentStep).classList.remove('active');
+
+  for (let i = 1; i < step; i++) {
+    document.getElementById('dot-' + i).classList.add('done');
+    document.getElementById('dot-' + i).classList.remove('active');
+    document.getElementById('circle-' + i).classList.add('done');
+    document.getElementById('circle-' + i).classList.remove('active');
+    document.getElementById('circle-' + i).innerHTML = '✓';
+  }
+
+  document.getElementById('screen-' + step).classList.add('active');
+  document.getElementById('dot-' + step).classList.add('active');
+  document.getElementById('dot-' + step).classList.remove('done');
+  document.getElementById('circle-' + step).classList.add('active');
+  document.getElementById('circle-' + step).classList.remove('done');
+  document.getElementById('circle-' + step).innerHTML = step;
+
+  currentStep = step;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function authorize() {
+  const btn = document.querySelector('.oauth-btn');
+  btn.textContent = 'Authorizing...';
+  btn.style.opacity = '.6';
+  setTimeout(() => goTo(3), 1200);
+}
+
+const scriptLines = [
+  { label: '🎣 HOOK (0–3 sec)', text: '"Wait — if you\'re working in tech, marketing, or design... this will shock you."' },
+  { label: '📌 POINT 1', text: 'Tool #1: Sora by OpenAI — generates full HD videos from text. Video editors: take note.' },
+  { label: '📌 POINT 2', text: 'Tool #2: Devin AI — writes, tests and deploys code autonomously. Not a copilot. A developer.' },
+  { label: '📌 POINT 3', text: 'Tool #3: Gamma — creates full presentations from a single prompt in 30 seconds.' },
+  { label: '🎯 CTA', text: '"Follow for daily AI tools that actually matter. Which one surprised you most? Comment below 👇"' },
+];
+
+let scriptGenerated = false;
+
+function generateScript() {
+  if (scriptGenerated) { goTo(5); return; }
+  const btn = document.getElementById('generateBtn');
+  btn.textContent = 'Generating...';
+  btn.disabled = true;
+  btn.style.opacity = '.6';
+
+  const bar = document.getElementById('loadingBar');
+  const fill = document.getElementById('loadingFill');
+  bar.style.display = 'block';
+
+  let prog = 0;
+  const barInterval = setInterval(() => {
+    prog = Math.min(prog + 2, 90);
+    fill.style.width = prog + '%';
+  }, 60);
+
+  const content = document.getElementById('scriptContent');
+  content.innerHTML = '';
+  let lineIdx = 0;
+
+  function typeLine() {
+    if (lineIdx >= scriptLines.length) {
+      clearInterval(barInterval);
+      fill.style.width = '100%';
+      setTimeout(() => {
+        bar.style.display = 'none';
+        document.getElementById('cursor').style.display = 'none';
+        btn.textContent = 'Publish this Script →';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.onclick = () => goTo(5);
+        scriptGenerated = true;
+      }, 400);
+      return;
+    }
+    const line = scriptLines[lineIdx];
+    const div = document.createElement('div');
+    div.className = 'script-section';
+    div.innerHTML = '<div class="script-label">' + line.label + '</div><div class="script-line"></div>';
+    content.appendChild(div);
+    const target = div.querySelector('.script-line');
+    let charIdx = 0;
+    const typeInterval = setInterval(() => {
+      target.textContent += line.text[charIdx];
+      charIdx++;
+      if (charIdx >= line.text.length) {
+        clearInterval(typeInterval);
+        lineIdx++;
+        setTimeout(typeLine, 300);
+      }
+    }, 18);
+  }
+
+  setTimeout(typeLine, 800);
+}
+
+function publish() {
+  const btn = document.getElementById('publishBtns');
+  btn.innerHTML = '<button class="btn-main" disabled style="opacity:.5">Publishing via video.upload API...</button>';
+  setTimeout(() => {
+    document.getElementById('publishStatus').style.display = 'block';
+    btn.innerHTML = '<button class="btn-main" onclick="goTo(1)" style="background:var(--success)">✓ Done — Start Over</button>';
+  }, 2000);
+}
+</script>
+</body>
+</html>
